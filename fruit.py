@@ -60,3 +60,9 @@ class Fruit:
     @property
     def text_color(self):
         return colors[self.rarity].get("fruit-text")
+
+    def __str__(self) -> str:
+        return f"<{self.name}, {self.rarity}>"
+
+    def __repr__(self) -> str:
+        return f"<{self.name}, {self.rarity}>"

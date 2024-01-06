@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 import io
 from nextcord.errors import DiscordServerError
 from db.channel import get_channels, delete_channel
+import logging
 
 URL = "https://blox-fruits.fandom.com/wiki/Blox_Fruits_%22Stock%22"
 
@@ -25,18 +26,31 @@ def get_next_refresh(hour: int) -> int:
 
 async def stock_subscriber(bot: Client, session: Session):
     while True:
+        logging.info("[Subscriber] Checking stock...")
         async with aiohttp.ClientSession() as client_session:
+            logging.info(f"[Subscriber] Checking stock by url={URL}")
             async with client_session.get(URL) as response:
                 html = await response.text()
+
+                logging.info("[Subscriber] Creating soup...")
                 soup = BeautifulSoup(html, "html.parser")
+                logging.info("[Subscriber] Created soup!")
+                logging.info("[Subscriber] Searching stock div element...")
                 stock = soup.find("div", id="mw-customcollapsible-current")
+                logging.info("[Subscriber] Div element has been searched.")
+
                 fruits = fruit_converter(stock_html=stock)
 
                 for fruit in fruits:
+                    logging.info(f"[Subscriber] Fruit preparing to send, fruit={fruit.name}")
 
+                    logging.info("[Subscriber] Creating image to send...")
                     arr = io.BytesIO()
                     fruit_image = create_fruit_image(fruit)
+                    logging.info("[Subscriber] Image created.")
+
                     channels = get_channels(session=session)
+
                     for channel in channels:
                         fruit_image.save(arr, format="png")
                         arr.seek(0)
@@ -49,10 +63,13 @@ async def stock_subscriber(bot: Client, session: Session):
                         except DiscordServerError:
                             delete_channel(session=session, channel_id=channel.channel_id)
 
+                logging.info("[Subscriber] Getting refresh in...")
                 now = datetime.now()
                 refresh_in = get_next_refresh(now.hour)
-
+                logging.info(f"[Subscriber] refresh_in={refresh_in}, now={now.strftime()}")
                 next_refresh = now.replace(hour=refresh_in, minute=10, second=15)
 
                 wait = (next_refresh - now).seconds
+
+                logging.info(f"[Subscriber] sleeping time to next refresh {wait}s")
                 await asyncio.sleep(wait)
