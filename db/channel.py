@@ -25,8 +25,10 @@ def create_channel(session: Session, channel_id: int):
     queryset = channel.insert().values(channel_id=channel_id)
     select_queryset = channel.select().where(channel.c.channel_id == channel_id)
     if not session.execute(select_queryset):
-        session.execute(queryset)
+        result = session.execute(queryset)
         session.commit()
+        session.flush()
+        return result
 
 def delete_channel(session: Session, channel_id: int):
     queryset = channel.delete().where(channel.c.channel_id == channel_id)
